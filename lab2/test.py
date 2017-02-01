@@ -69,6 +69,8 @@ async def run(robot: cozmo.robot.Robot):
 
     try:
         trigger = True
+        isBallFound = False
+        isRobotAtBall = False
         while trigger:
             #get camera image
             event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
@@ -76,28 +78,41 @@ async def run(robot: cozmo.robot.Robot):
             #
             #convert camera image to opencv format
             opencv_image = cv2.cvtColor(np.asarray(event.image), cv2.COLOR_RGB2GRAY)
-
+            w, h = opencv_image.shape
             #find the ball
             # About to roll in and look around for it
             ball = find_ball.find_ball(opencv_image)
-            while(ball is None):
-                await robot.drive_wheels(10,-10)
-                ball = find_ball.find_ball(opencv_image)
+            # print("ball", ball)
             distance = calcDistance(ball)
+            if not isBallFound:
+                await robot.drive_wheels(25,-25)
+                if distance is not None:
+                    isBallFound = True
+                    await robot.drive_wheels(0,0, duration=1)
             #set annotator ball
+
             BallAnnotator.ball = ball
             BallAnnotator.distance = distance
             ##Moving the robot to the ball
-            if not robot.has_in_progress_actions:
-                print(distance)
-                if distance is not None:
-                    if distance > 85:
-                        speed = 20
-                        await robot.drive_wheels(speed, speed)
-                    else:
-                        trigger = false
+            if not isRobotAtBall and distance is not None:
+                if distance > 85:
+                    speed = 10
+                    adj = ((w/2)-ball[0])
+                    a, b = norm(-adj, adj)
+                    lspeed = 5 + speed * a * ball[2]/distance
+                    rspeed = 5 + speed * b * ball[2]/distance
+
+                    print(lspeed, rspeed)
+                    await robot.drive_wheels(lspeed, rspeed)
                 else:
-                    await robot.drive_wheels(0, 0)
+                    await robot.drive_wheels(10,10, duration=1)
+                    print("done yay")
+                    isRobotAtBall = True
+                    trigger = False
+                # else:
+                    # await robot.drive_wheels(0, 0)
+        await robot.set_lift_height(1).wait_for_completed()
+        await robot.set_lift_height(0).wait_for_completed()
 
     except KeyboardInterrupt:
         print("")
@@ -105,7 +120,18 @@ async def run(robot: cozmo.robot.Robot):
     except cozmo.RobotBusy as e:
         print(e)
 
-
+def norm(a, b):
+    try:
+        m = ((a**2)+(b**2))**0.5
+        out_a = a/m
+        out_b = b/m
+    except:
+        out_a = 0.5
+        out_b = 0.5
+    if out_a == 'nan' or out_b = 'nan':
+        out_a = 0.5
+        out_b = 0.5
+    return (out_a, out_b)
 
 if __name__ == '__main__':
     cozmo.run_program(run, use_viewer = True, force_viewer_on_top = True)
