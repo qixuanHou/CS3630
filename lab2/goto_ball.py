@@ -68,7 +68,7 @@ async def run(robot: cozmo.robot.Robot):
     robot.world.image_annotator.add_annotator('ball', BallAnnotator)
 
     try:
-        trigger = true
+        trigger = True
         while trigger:
             #get camera image
             event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
@@ -85,15 +85,15 @@ async def run(robot: cozmo.robot.Robot):
             BallAnnotator.distance = distance
             ##Moving the robot to the ball
             if not robot.has_in_progress_actions:
+                print(distance)
                 if distance is not None:
-                    if distance > 20:
-                         l_wheel_speed = 3
-                         r_wheel_speed = 3
-                         robot.drive_wheels(l_wheel_speed, r_wheel_speed)
+                    if distance > 85:
+                        speed = 20
+                        await robot.drive_wheels(speed, speed)
                     else:
-                         trigger = false
+                        trigger = false
                 else:
-                    robot.drive_wheels(0, 0)
+                    await robot.drive_wheels(0, 0)
 
     except KeyboardInterrupt:
         print("")

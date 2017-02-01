@@ -68,23 +68,24 @@ async def run(robot: cozmo.robot.Robot):
     robot.world.image_annotator.add_annotator('ball', BallAnnotator)
 
     try:
-        robot.drive_wheels(3,3)
-"""        trigger = true
-        while trigger:
-            #get camera image
-            event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
+        # if not robot.has_in_progress_actions:
+        await robot.drive_wheels(10, 10, duration=None)
+# """        trigger = true
+#         while trigger:
+#             #get camera image
+#             event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
 
-            #convert camera image to opencv format
-            opencv_image = cv2.cvtColor(np.asarray(event.image), cv2.COLOR_RGB2GRAY)
+#             #convert camera image to opencv format
+#             opencv_image = cv2.cvtColor(np.asarray(event.image), cv2.COLOR_RGB2GRAY)
 
-            #find the ball
-            # About to roll in and look around for it
-            ball = find_ball.find_ball(opencv_image)
-            distance = calcDistance(ball)
-            #set annotator ball
-            BallAnnotator.ball = ball
-            BallAnnotator.distance = distance
-"""
+#             #find the ball
+#             # About to roll in and look around for it
+#             ball = find_ball.find_ball(opencv_image)
+#             distance = calcDistance(ball)
+#             #set annotator ball
+#             BallAnnotator.ball = ball
+#             BallAnnotator.distance = distance
+# """
     except KeyboardInterrupt:
         print("")
         print("Exit requested by user")
