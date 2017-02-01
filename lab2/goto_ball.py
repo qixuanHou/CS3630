@@ -8,12 +8,20 @@ import numpy as np
 import find_ball
 
 import cozmo
+from cozmo.util import degrees, distance_mm, speed_mmps
+
 
 try:
     from PIL import ImageDraw, ImageFont
 except ImportError:
     sys.exit('run `pip3 install --user Pillow numpy` to run this example')
 
+
+
+def calcDistance(ball, ballSize=40.0, focalLength=220.0):
+    if ball is not None:
+        return (focalLength/ball[2])*ballSize
+    return None
 
 # Define a decorator as a subclass of Annotator; displays battery voltage
 class BatteryAnnotator(cozmo.annotate.Annotator):
@@ -28,7 +36,7 @@ class BatteryAnnotator(cozmo.annotate.Annotator):
 class BallAnnotator(cozmo.annotate.Annotator):
 
     ball = None
-
+    distance = None
     def apply(self, image, scale):
         d = ImageDraw.Draw(image)
         bounds = (0, 0, image.width, image.height)
@@ -43,7 +51,11 @@ class BallAnnotator(cozmo.annotate.Annotator):
             box = cozmo.util.ImageBox(BallAnnotator.ball[0]-BallAnnotator.ball[2],
                                       BallAnnotator.ball[1]-BallAnnotator.ball[2],
                                       BallAnnotator.ball[2]*2, BallAnnotator.ball[2]*2)
-            cozmo.annotate.add_img_box_to_image(image, box, "green", text=None)
+
+            text = "find_ball: "+ ("%.2f" % calcDistance(BallAnnotator.ball))
+            text = "find_ball: "+ ("%.2f" % BallAnnotator.distance)
+            imtx = cozmo.annotate.ImageText(text)
+            cozmo.annotate.add_img_box_to_image(image, box, "green", text=imtx)
 
             BallAnnotator.ball = None
 
@@ -54,7 +66,6 @@ async def run(robot: cozmo.robot.Robot):
     #add annotators for battery level and ball bounding box
     robot.world.image_annotator.add_annotator('battery', BatteryAnnotator)
     robot.world.image_annotator.add_annotator('ball', BallAnnotator)
-
 
     try:
 
@@ -67,12 +78,18 @@ async def run(robot: cozmo.robot.Robot):
 
             #find the ball
             ball = find_ball.find_ball(opencv_image)
-
+            distance = calcDistance(ball)
             #set annotator ball
             BallAnnotator.ball = ball
-
+            BallAnnotator.distance = distance
             ##ENTER YOUR GOTO_BALL SOLUTION HERE
-
+            if not robot.has_in_progress_actions:
+                if distance is not None and distance > 20:
+                    l_wheel_speed = 3
+                    r_wheel_speed = 3
+                    robot.drive_wheels(l_wheel_speed, r_wheel_speed)
+                else:
+                    robot.drive_wheels(0, 0)
 
     except KeyboardInterrupt:
         print("")
@@ -84,4 +101,3 @@ async def run(robot: cozmo.robot.Robot):
 
 if __name__ == '__main__':
     cozmo.run_program(run, use_viewer = True, force_viewer_on_top = True)
-
