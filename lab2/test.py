@@ -78,7 +78,7 @@ async def run(robot: cozmo.robot.Robot):
             #
             #convert camera image to opencv format
             opencv_image = cv2.cvtColor(np.asarray(event.image), cv2.COLOR_RGB2GRAY)
-            w, h = opencv_image.shape
+            h, w = opencv_image.shape
             #find the ball
             # About to roll in and look around for it
             ball = find_ball.find_ball(opencv_image)
@@ -96,11 +96,19 @@ async def run(robot: cozmo.robot.Robot):
             ##Moving the robot to the ball
             if not isRobotAtBall and distance is not None:
                 if distance > 85:
-                    speed = 10
+                    speed = 20
                     adj = ((w/2)-ball[0])
+                    print(w)
+                    if adj > 50:
+                        adj = 50
+                    if adj < -50:
+                        adj = -50
+                    print("adj", adj)
                     a, b = norm(-adj, adj)
-                    lspeed = 5 + speed * a * ball[2]/distance
-                    rspeed = 5 + speed * b * ball[2]/distance
+
+                    df = distance if distance is not None else 1
+                    lspeed = 5 + 20 + speed * a * ball[2]/df
+                    rspeed = 5 + 20 + speed * b * ball[2]/df
 
                     print(lspeed, rspeed)
                     await robot.drive_wheels(lspeed, rspeed)
@@ -121,17 +129,11 @@ async def run(robot: cozmo.robot.Robot):
         print(e)
 
 def norm(a, b):
-    try:
-        m = ((a**2)+(b**2))**0.5
-        out_a = a/m
-        out_b = b/m
-    except:
-        out_a = 0.5
-        out_b = 0.5
-    if out_a == 'nan' or out_b = 'nan':
-        out_a = 0.5
-        out_b = 0.5
-    return (out_a, out_b)
+    m = ((a**2)+(b**2))**0.5
+    if not m == 0:
+        a = a/m
+        b = b/m
+    return (a, b)
 
 if __name__ == '__main__':
     cozmo.run_program(run, use_viewer = True, force_viewer_on_top = True)
