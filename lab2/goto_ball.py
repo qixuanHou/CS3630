@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import math
 import asyncio
 import sys
 
@@ -69,31 +69,56 @@ async def run(robot: cozmo.robot.Robot):
 
     try:
         trigger = True
+        isBallFound = False
+        isRobotAtBall = False
         while trigger:
             #get camera image
             event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
 
+            #
             #convert camera image to opencv format
             opencv_image = cv2.cvtColor(np.asarray(event.image), cv2.COLOR_RGB2GRAY)
-
+            h, w = opencv_image.shape
             #find the ball
             # About to roll in and look around for it
             ball = find_ball.find_ball(opencv_image)
+            # print("ball", ball)
             distance = calcDistance(ball)
+            if not isBallFound:
+                await robot.drive_wheels(25,-25)
+                if distance is not None:
+                    isBallFound = True
+                    await robot.drive_wheels(0,0, duration=0.1)
             #set annotator ball
+
             BallAnnotator.ball = ball
             BallAnnotator.distance = distance
             ##Moving the robot to the ball
-            if not robot.has_in_progress_actions:
-                print(distance)
-                if distance is not None:
-                    if distance > 85:
-                        speed = 20
-                        await robot.drive_wheels(speed, speed)
+            if not isRobotAtBall and distance is not None:
+                if distance > 85:
+                    x = distance if distance else 50
+                    base = 15*(math.log(x+10)-1)-53
+                    adj = ((ball[0]/w)-0.5)
+                    print("adj", adj)
+                    print("dist", distance)
+                    if abs(adj) > 0.03:
+                        lspeed = 10 + base * ((-adj)+0.5 if adj < 0 else 1)
+                        rspeed = 10 + base * ((adj)+0.5 if adj > 0 else 1)
                     else:
-                        trigger = false
+                        lspeed = 10 + base
+                        rspeed = 10 + base
+
+                    # print(lspeed, rspeed)
+                    await robot.drive_wheels(lspeed, rspeed)
                 else:
-                    await robot.drive_wheels(0, 0)
+                    await robot.drive_wheels(10,10, duration=1)
+                    print("done yay")
+                    isRobotAtBall = True
+                    trigger = False
+                # else:
+                    # await robot.drive_wheels(0, 0)
+        await robot.set_lift_height(1).wait_for_completed()
+        await robot.set_lift_height(0).wait_for_completed()
 
     except KeyboardInterrupt:
         print("")
