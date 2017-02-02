@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import math
 import asyncio
 import sys
 
@@ -88,7 +88,7 @@ async def run(robot: cozmo.robot.Robot):
                 await robot.drive_wheels(25,-25)
                 if distance is not None:
                     isBallFound = True
-                    await robot.drive_wheels(0,0, duration=1)
+                    await robot.drive_wheels(0,0, duration=0.1)
             #set annotator ball
 
             BallAnnotator.ball = ball
@@ -96,19 +96,17 @@ async def run(robot: cozmo.robot.Robot):
             ##Moving the robot to the ball
             if not isRobotAtBall and distance is not None:
                 if distance > 85:
-                    speed = 20
-                    adj = ((w/2)-ball[0])
-                    print(w)
-                    if adj > 50:
-                        adj = 50
-                    if adj < -50:
-                        adj = -50
+                    x = distance if distance else 50
+                    base = 15*(math.log(x+10)-1)-53
+                    adj = ((ball[0]/w)-0.5)
                     print("adj", adj)
-                    a, b = norm(-adj, adj)
 
-                    df = distance if distance is not None else 1
-                    lspeed = 5 + 20 + speed * a * ball[2]/df
-                    rspeed = 5 + 20 + speed * b * ball[2]/df
+                    if abs(adj) > 0.02:
+                        lspeed = 10 + base * ((-adj)+0.5 if adj < 0 else 1)
+                        rspeed = 10 + base * ((adj)+0.5 if adj > 0 else 1)
+                    else:
+                        lspeed = 10 + base
+                        rspeed = 10 + base
 
                     print(lspeed, rspeed)
                     await robot.drive_wheels(lspeed, rspeed)
@@ -128,12 +126,7 @@ async def run(robot: cozmo.robot.Robot):
     except cozmo.RobotBusy as e:
         print(e)
 
-def norm(a, b):
-    m = ((a**2)+(b**2))**0.5
-    if not m == 0:
-        a = a/m
-        b = b/m
-    return (a, b)
+
 
 if __name__ == '__main__':
     cozmo.run_program(run, use_viewer = True, force_viewer_on_top = True)
