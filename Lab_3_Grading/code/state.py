@@ -35,7 +35,7 @@ class State():
                 self.cur = "START"
 
             print("Switching to state: " + self.cur)
-            #subprocess.run(["paplay", "/usr/share/sounds/ubuntu/notifications/Blip.ogg"])
+            # subprocess.run(["paplay", "./blip.ogg"])
     def set(self, s):
         if s in self.states:
             state.cur = s

@@ -9,7 +9,7 @@ import numpy as np
 import find_ball
 
 import cozmo
-from cozmo.util import degrees, distance_mm, speed_mmps
+from cozmo.util import degrees, distance_mm, speed_mmps, radians
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:
@@ -103,9 +103,11 @@ async def run(robot: cozmo.robot.Robot):
         isRobotAtBall = False
         left = False
         right = False
+        robot.set_head_angle(radians(-0.23))
         # prevPos = None
         # direction = None
         while trigger:
+
             #get camera image
             event = await robot.world.wait_for(cozmo.camera.EvtNewRawCameraImage, timeout=30)
 
@@ -123,7 +125,8 @@ async def run(robot: cozmo.robot.Robot):
             BallAnnotator.distance = distance
             # BallAnnotator.direction = direction
             if state.isCurState("START"):
-                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
+                robot.set_lift_height(0, in_parallel=True)
+                # robot.display_oled_face_image(image(state.cur), 10.0, in_parallel=True)
 
                 #spin around and search for ball
                 #Make a sound and print something on screen
@@ -137,7 +140,7 @@ async def run(robot: cozmo.robot.Robot):
                     state.next()
 
             if state.isCurState("TRAVELING"):
-                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
+                # robot.display_oled_face_image(image(state.cur), 10.0, in_parallel=True)
                 #Print and sound off
                 # move towards ball
                 if distance is None:
@@ -160,11 +163,11 @@ async def run(robot: cozmo.robot.Robot):
                         if left:
                             lspeed = base
                             rspeed = base - adj
-                            print("LEFT")
+                            # print("LEFT")
                         elif right:
                             lspeed = base + adj
                             rspeed = base
-                            print("RIGHT")
+                            # print("RIGHT")
                         else:
                             lspeed = base + 20
                             rspeed = base + 20
@@ -175,11 +178,11 @@ async def run(robot: cozmo.robot.Robot):
                         state.next()
 
             if state.isCurState("END"):
-                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
+                # robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
                 #tap ball
                 #Screen and sound off
-                robot.set_lift_height(1, in_parallel = True)
-                robot.set_lift_height(0, in_parallel = True)
+                robot.set_lift_height(1, in_parallel=True).wait_for_completed()
+                robot.set_lift_height(0, in_parallel=True).wait_for_completed()
                 if distance is not None:
                     if left or right:
                         state.next()
@@ -191,6 +194,7 @@ async def run(robot: cozmo.robot.Robot):
                 await robot.drive_wheels(0, 0, 0.05)
                 state.next()
 
+            robot.display_oled_face_image(image(state.cur), 100, in_parallel=True)
 
     except KeyboardInterrupt:
         print("")

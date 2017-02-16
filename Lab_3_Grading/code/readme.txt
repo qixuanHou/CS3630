@@ -1,0 +1,1 @@
+We use subprocess in our python code to play a sound when we change state. Using subprocess we execute a bash command that plays a sound with the paplay package. If you do not have this installed or are not on linux the code will break and not work. You can uncomment this line in state.py and the code will work just without any sound.
