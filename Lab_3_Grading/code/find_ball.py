@@ -39,7 +39,7 @@ def find_ball(opencv_image, debug=False):
     # cv2.destroyAllWindows()
     circles = cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=5)
 
-    if circles != None:
+    if circles is not None:
         ball = circles[0][0]
         ball = np.uint16(np.around(ball))
         # print(ball)
