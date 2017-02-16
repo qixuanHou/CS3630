@@ -101,7 +101,8 @@ async def run(robot: cozmo.robot.Robot):
         trigger = True
         isBallFound = False
         isRobotAtBall = False
-
+        left = False
+        right = False
         # prevPos = None
         # direction = None
         while trigger:
@@ -121,8 +122,9 @@ async def run(robot: cozmo.robot.Robot):
             BallAnnotator.ball = ball
             BallAnnotator.distance = distance
             # BallAnnotator.direction = direction
-            robot.display_oled_face_image(image(state.cur), 1000.0, in_parallel = True)
             if state.isCurState("START"):
+                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
+
                 #spin around and search for ball
                 #Make a sound and print something on screen
 
@@ -135,6 +137,7 @@ async def run(robot: cozmo.robot.Robot):
                     state.next()
 
             if state.isCurState("TRAVELING"):
+                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
                 #Print and sound off
                 # move towards ball
                 if distance is None:
@@ -172,12 +175,11 @@ async def run(robot: cozmo.robot.Robot):
                         state.next()
 
             if state.isCurState("END"):
+                robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
                 #tap ball
                 #Screen and sound off
-                # await robot.drive_wheels(10,10, duration=1)
-                # print("done yay")
-                await robot.set_lift_height(1)
-                await robot.set_lift_height(0)
+                robot.set_lift_height(1, in_parallel = True)
+                robot.set_lift_height(0, in_parallel = True)
                 if distance is not None:
                     if left or right:
                         state.next()
@@ -189,11 +191,6 @@ async def run(robot: cozmo.robot.Robot):
                 await robot.drive_wheels(0, 0, 0.05)
                 state.next()
 
-                """if distance is not None:
-                    isBallFound = True
-                    await robot.drive_wheels(0,0, duration=0.1)"""
-            # print("speed:", robot.left_wheel_speed.speed_mmps, robot.right_wheel_speed.speed_mmps)
-            # print("ball x pos:", ball[0] if ball is not None else "None")
 
     except KeyboardInterrupt:
         print("")
