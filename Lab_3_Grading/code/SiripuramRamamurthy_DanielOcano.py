@@ -10,7 +10,10 @@ import find_ball
 
 import cozmo
 from cozmo.util import degrees, distance_mm, speed_mmps
-
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    sys.exit("Cannot import from PIL. Do `pip3 install --user Pillow` to install")
 from state import State
 
 try:
@@ -62,7 +65,30 @@ class BallAnnotator(cozmo.annotate.Annotator):
 
             BallAnnotator.ball = None
 
+def image(text_to_draw, x=8, y=6, font=None):
+    '''Make a PIL.Image with the given text printed on it
 
+    Args:
+        text_to_draw (string): the text to draw to the image
+        x (int): x pixel location
+        y (int): y pixel location
+        font (PIL.ImageFont): the font to use
+
+    Returns:
+        :class:(`PIL.Image.Image`): a PIL image with the text drawn on it
+    '''
+
+    # make a blank image for the text, initialized to opaque black
+    text_image = Image.new('RGBA', cozmo.oled_face.dimensions(), (0, 0, 0, 255))
+
+    # get a drawing context
+    dc = ImageDraw.Draw(text_image)
+
+    # draw the text
+    dc.text((x, y), text_to_draw, fill=(255, 255, 255, 255), font=font)
+
+    out = cozmo.oled_face.convert_image_to_screen_data(text_image)
+    return out
 async def run(robot: cozmo.robot.Robot):
     '''The run method runs once the Cozmo SDK is connected.'''
 
@@ -95,9 +121,13 @@ async def run(robot: cozmo.robot.Robot):
             BallAnnotator.ball = ball
             BallAnnotator.distance = distance
             # BallAnnotator.direction = direction
+            robot.display_oled_face_image(image(state.cur), 1000.0, in_parallel = True)
             if state.isCurState("START"):
                 #spin around and search for ball
                 #Make a sound and print something on screen
+
+                # display for 1 second
+
                 if ball is None:
                     await robot.drive_wheels(17,-17)
                 else:
@@ -107,14 +137,22 @@ async def run(robot: cozmo.robot.Robot):
             if state.isCurState("TRAVELING"):
                 #Print and sound off
                 # move towards ball
+                if distance is None:
+                    if left:
+                        lspeed = 5
+                        rspeed = 2*base
+                    if right:
+                        lspeed = 2*base
+                        rspeed = 5
+                    await robot.drive_wheels(lspeed,rspeed)
                 if distance is not None:
                     if distance > 85:
                         base = 25
-                        adj = (ball[0]-(w/2)) / (math.log(distance**0.5)*5)
-                        print(distance)
-                        print("adj:", adj)
-                        left = adj < 0
-                        right = adj > 0
+                        adj = (ball[0]-(w/2)) / (distance**0.5)
+                        # print(distance)
+                        # print("adj:", adj)
+                        left = adj < -0.75
+                        right = adj > 0.75
 
                         if left:
                             lspeed = base
@@ -125,8 +163,8 @@ async def run(robot: cozmo.robot.Robot):
                             rspeed = base
                             print("RIGHT")
                         else:
-                            lspeed = base
-                            rspeed = base
+                            lspeed = base + 20
+                            rspeed = base + 20
 
 
                         await robot.drive_wheels(lspeed, rspeed)
@@ -136,11 +174,15 @@ async def run(robot: cozmo.robot.Robot):
             if state.isCurState("END"):
                 #tap ball
                 #Screen and sound off
-                await robot.drive_wheels(10,10, duration=1)
-                print("done yay")
-                await robot.set_lift_height(1).wait_for_completed()
-                await robot.set_lift_height(0).wait_for_completed()
-                trigger = False
+                # await robot.drive_wheels(10,10, duration=1)
+                # print("done yay")
+                await robot.set_lift_height(1)
+                await robot.set_lift_height(0)
+                if distance is not None:
+                    if left or right:
+                        state.next()
+                    if distance > 85:
+                        state.next()
 
             if state.isCurState("PAUSE"):
                 #pause for a moment
@@ -150,8 +192,8 @@ async def run(robot: cozmo.robot.Robot):
                 """if distance is not None:
                     isBallFound = True
                     await robot.drive_wheels(0,0, duration=0.1)"""
-            print("speed:", robot.left_wheel_speed.speed_mmps, robot.right_wheel_speed.speed_mmps)
-            print("ball x pos:", ball[0] if ball is not None else "None")
+            # print("speed:", robot.left_wheel_speed.speed_mmps, robot.right_wheel_speed.speed_mmps)
+            # print("ball x pos:", ball[0] if ball is not None else "None")
 
     except KeyboardInterrupt:
         print("")

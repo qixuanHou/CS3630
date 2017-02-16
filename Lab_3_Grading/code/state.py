@@ -7,7 +7,7 @@
 # end - at the ball and has to tap it
 
 # ~pause - stop cozmo for a sec
-
+import subprocess
 class State():
     def __init__(self):
         self.states = ["START", "TRAVELING", "END", "PAUSE"]
@@ -18,6 +18,7 @@ class State():
         return check == self.cur
 
     def next(self, lost=False):
+        print("Current State: " + self.cur)
         if lost:
             self.cur = "PAUSE"
         else:
@@ -28,13 +29,13 @@ class State():
                 self.cur = "END"
 
             elif self.cur == "END":
-                self.cur = "END"
+                self.cur = "TRAVELING"
 
             elif self.cur == "PAUSE":
                 self.cur = "START"
 
-            print("Switching to", self.cur, "state")
-
+            print("Switching to state: " + self.cur)
+            subprocess.run(["paplay", "/usr/share/sounds/alsa/notifications/Blip.ogg"])
     def set(self, s):
         if s in self.states:
             state.cur = s
