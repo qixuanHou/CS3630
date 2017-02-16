@@ -12,7 +12,10 @@ class State():
     def __init__(self):
         self.states = ["START", "TRAVELING", "END", "PAUSE"]
         self.cur = "START"
-        print(self.cur)
+        print("Intialized to", self.cur, "state")
+
+    def isCurState(self, check):
+        return check == self.cur
 
     def next(self, lost=False):
         if lost:
@@ -30,7 +33,8 @@ class State():
             elif self.cur == "PAUSE":
                 self.cur = "START"
 
-            print(self.cur)
+            print("Switching to", self.cur, "state")
+
     def set(self, s):
         if s in self.states:
             state.cur = s
