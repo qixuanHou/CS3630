@@ -98,12 +98,13 @@ async def run(robot: cozmo.robot.Robot):
 
     try:
         state = State()
+        robot.display_oled_face_image(image(state.cur), 20000, in_parallel=True)
         trigger = True
         isBallFound = False
         isRobotAtBall = False
         left = False
         right = False
-        robot.set_head_angle(radians(-0.23))
+        robot.set_head_angle(radians(-0.23), in_parallel=True)
         # prevPos = None
         # direction = None
         while trigger:
@@ -138,6 +139,7 @@ async def run(robot: cozmo.robot.Robot):
                 else:
                     await robot.drive_wheels(0, 0, 0.5)
                     state.next()
+                    robot.display_oled_face_image(image(state.cur), 20000, in_parallel=True)
 
             if state.isCurState("TRAVELING"):
                 # robot.display_oled_face_image(image(state.cur), 10.0, in_parallel=True)
@@ -176,6 +178,7 @@ async def run(robot: cozmo.robot.Robot):
                         await robot.drive_wheels(lspeed, rspeed)
                     else:
                         state.next()
+                        robot.display_oled_face_image(image(state.cur), 20000, in_parallel=True)
 
             if state.isCurState("END"):
                 # robot.display_oled_face_image(image(state.cur), 10.0, in_parallel = True)
@@ -183,18 +186,21 @@ async def run(robot: cozmo.robot.Robot):
                 #Screen and sound off
                 robot.set_lift_height(1, in_parallel=True).wait_for_completed()
                 robot.set_lift_height(0, in_parallel=True).wait_for_completed()
-                if distance is not None:
+                if distance is None:
                     if left or right:
                         state.next()
-                    if distance > 85:
-                        state.next()
+                        robot.display_oled_face_image(image(state.cur), 20000, in_parallel=True)
+                elif distance > 85:
+                    state.next()
+                    robot.display_oled_face_image(image(state.cur), 20000, in_parallel=True)
 
             if state.isCurState("PAUSE"):
                 #pause for a moment
                 await robot.drive_wheels(0, 0, 0.05)
                 state.next()
+                robot.display_oled_face_image(image(state.cur), 100, in_parallel=True)
 
-            robot.display_oled_face_image(image(state.cur), 100, in_parallel=True)
+
 
     except KeyboardInterrupt:
         print("")

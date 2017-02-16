@@ -18,7 +18,7 @@ class State():
         return check == self.cur
 
     def next(self, lost=False):
-        print("Current State: " + self.cur)
+        print("Current State:", self.cur)
         if lost:
             self.cur = "PAUSE"
         else:
@@ -34,7 +34,7 @@ class State():
             elif self.cur == "PAUSE":
                 self.cur = "START"
 
-            print("Switching to state: " + self.cur)
+            print("Switching to state:", self.cur)
             # subprocess.run(["paplay", "./blip.ogg"])
     def set(self, s):
         if s in self.states:
