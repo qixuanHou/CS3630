@@ -1,9 +1,0 @@
-STATES
-
-start - intial state doesn't know anything has to look for ball
-
-traveling - found the ball and has to keep track of it and travel to it
-
-end - at the ball and has to tap it
-
-~pause - stop cozmo for a sec
