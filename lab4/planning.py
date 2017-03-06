@@ -9,6 +9,8 @@ from queue import PriorityQueue
 import math
 import cozmo
 
+from cozmo.util import radians, distance_mm, speed_mmps
+
 def astar(grid, heuristic):
     """Perform the A* search algorithm on a defined grid
 
@@ -72,7 +74,26 @@ def cozmoBehavior(robot: cozmo.robot.Robot):
 
     global grid, stopevent
 
+    grid.setStart((1, 1))
+    grid.addGoal((9, 13))
+    curHeading = 0
     while not stopevent.is_set():
+        cubeFound = False
+
+
+        if not cubeFound:
+            path = grid.getPath()
+            a = path[0]
+            b = path[1]
+            step = (b[0]-a[0], b[1]-a[1])
+            step_len = math.sqrt(math.pow(a[0]-b[0],2) + math.pow(a[1]-b[1],2))
+            if step_len == 0:
+                print("found it")
+                break
+            heading = math.atan2(step[1], step[0])
+            curHeading = heading - curHeading
+            robot.turn_in_place(radians(curHeading)).wait_for_completed()
+            robot.drive_straight(distance_mm(25*step_len), speed_mmps(25*step_len)).wait_for_completed()
         pass # Your code here
 
 
