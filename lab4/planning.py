@@ -72,32 +72,48 @@ def cozmoBehavior(robot: cozmo.robot.Robot):
         Arguments:
         robot -- cozmo.robot.Robot instance, supplied by cozmo.run_program
     """
-    robot.image_stream_enabled = True
     global grid, stopevent
+    robot.image_stream_enabled = True
+    cube1pos = None
+    curHeading = 0
 
-    robot.set_head_angle(radians(-0.23)).wait_for_completed()
+    # obstacle_size = [-1, 0, 1]
+    obstacle_size = [-2, -1, 0, 1, 2]
+    # obstacle_size = [-3, -2, -1, 0, 1, 2, 3]
     gridscale = 25
     scale = 27
-    cube1id = 5
-    grid.setStart((2, 2))
+
+    a = (2, 2)
+    grid.setStart(a)
     grid.addGoal((13, 9))
-    curSpot = grid.getStart() #hpefully valid
-    curHeading = 0
     objects = set()
-    cube1pos = None
+
+    robot.set_head_angle(radians(-0.23)).wait_for_completed()
     while not stopevent.is_set():
         # print([ e.pose.position for e in robot.world.visible_objects])
         # if world.light_cubes[cozmo.objects.LightCube1Id].is_visible
+        astar(grid, heuristic)
+        path = grid.getPath()
+        # print([e for e in grid.getGoals()])
+        path_ind = path.index(a)
+        if len(path) - path_ind == 1:
+            b = a
+            print("GOOOOOOOOAAAL")
+        else:
+            b = path[path_ind + 1]
+        print("a", a, "b", b)
+        print(path, path_ind)
+
         for e in robot.world.visible_objects:
             if e.object_id not in objects:
-                xr = curSpot[0]
-                yr = curSpot[1]
+                xr = a[0]
+                yr = a[1]
                 xc = e.pose.position.x
                 yc = e.pose.position.y
                 # yc = yr + ((e.pose.position.x * math.sin(curHeading)) + (e.pose.position.y * math.cos(curHeading)))/scale
                 print(e.pose.position)
-                xc = math.ceil((xc+50)/gridscale)
-                yc = math.ceil((yc+50)/gridscale)
+                xc = math.ceil((xc)/gridscale) + 2
+                yc = math.ceil((yc)/gridscale) + 2
                 if xc == 27:
                     xc = 26
                 if yc == 27:
@@ -107,59 +123,54 @@ def cozmoBehavior(robot: cozmo.robot.Robot):
                 print(curHeading/math.pi)
 
                 if xc <= 26 and yc <= 18:
-                    for i in [-2,-1, 0 , 1, 2]:
-                        for j in [-2,-1, 0, 1,2]:
+                    for i in obstacle_size:
+                        for j in obstacle_size:
                             xci = xc + i
                             ycj = yc + j
                             if xci <= 26 and xci >= 0 and ycj <= 18 and ycj >= 0:
                                 grid.addObstacle((xci,ycj))
+                    grid.clearVisited()
+                    grid.setStart(b)
+                    print(grid.getGoals())
                     print("Obstacle pos", xc,yc)
                     objects.add(e.object_id) #you ge tthe idea
                     if robot.world.light_cubes[cozmo.objects.LightCube1Id].object_id == e.object_id:
                         cube1pos = (xc,yc)
                         print("e id ",e.object_id)
-                        grid.clearGoals()
                         angelz = e.pose.rotation.angle_z.radians
                         print("angelz+mod",angelz,angelz+math.pi)
                         angelz = math.pi + angelz
-                        xc += 3*round(math.cos(angelz))
-                        yc += 3*round(math.sin(angelz))
+                        xc += round(math.cos(angelz)) * (len(obstacle_size)//2 + 1)
+                        yc += round(math.sin(angelz)) * (len(obstacle_size)//2 + 1)
+                        grid.clearGoals()
                         grid.addGoal((xc, yc))
                     # else:
                 #     make it an obstacle
         # if not cubeFound:
-        sleep(.4)
-        astar(grid, heuristic)
-        path = grid.getPath()
-        print([e for e in grid.getGoals()])
-        if(len(path) is 1):
-            b = path[0]
-            print("GOOOOOOOOAAAL")
-        else:
-            b = path[1]
-        a = path[0]
+        # sleep(.4)
         step = (b[0]-a[0], b[1]-a[1])
-        step_len = math.sqrt(math.pow(a[0]-b[0],2) + math.pow(a[1]-b[1],2))
+        step_len = math.sqrt(math.pow(step[0],2) + math.pow(step[1],2))
         heading = math.atan2(step[1], step[0])
         turnHeading = heading - curHeading
         curHeading = heading
         robot.turn_in_place(radians(turnHeading)).wait_for_completed()
-        robot.drive_wheels(scale*step_len, scale*step_len, duration = 1.75*math.sqrt(step_len))
-        grid.clearVisited()
-        curSpot = b
-        grid.setStart(b)
+        # print(step_len)
+        robot.drive_wheels(scale, scale, duration=1.4*step_len if step_len == 1 else 1.4*step_len)
+        # grid.setStart(b)
         if step_len == 0 and cube1pos is None:
             robot.turn_in_place(radians(math.pi/16)).wait_for_completed()
         elif step_len == 0 and cube1pos is not None:
-
-            heading = math.atan2(cube1pos[1] - b[1], cube1pos[0] - b[0])
-            print("b", b)
+            robot.drive_wheels(0, 0, duration=1)
             print("cube1pos", cube1pos)
+            heading = math.atan2(cube1pos[1] - b[1], cube1pos[0] - b[0])
             print("heading", heading)
+            print("curHeading", curHeading)
             turnHeading = heading - curHeading
             curHeading = heading
             robot.turn_in_place(radians(turnHeading)).wait_for_completed()
             break
+
+        a = b
         # # pass # Your code here
 
 
