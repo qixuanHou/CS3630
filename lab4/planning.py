@@ -184,7 +184,7 @@ class RobotThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self, daemon=True)
 
-    def start(self):
+    def run(self):
         cozmo.run_program(cozmoBehavior)
 
 
