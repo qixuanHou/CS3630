@@ -1,3 +1,6 @@
+# Author 1: Ramamurthy Siripuram
+# Author 2: Daniel Ocano
+
 from grid import *
 from particle import Particle
 from utils import *
@@ -60,7 +63,7 @@ def measurement_update(particles, measured_marker_list, grid):
     def closest_marker(cm, mvp):
         # print("cm", cm)
         # print("mvp", mvp)
-        return sorted([(grid_distance(cm[0], m[0], cm[1], m[1]), m) for m in mvp])[0]
+        return sorted([(grid_distance(cm[0], cm[1], m[0], m[1]), m) for m in mvp])[0]
 
     particles_off_grid = 0
     particles_weights = list()
@@ -77,7 +80,7 @@ def measurement_update(particles, measured_marker_list, grid):
                             markers_visible_to_particle.remove(m)
                     prob = 1.0
                     for marker in matched_markers:
-                        distBetweenMarkers = grid_distance(marker[0][0], marker[1][0], marker[0][1], marker[1][1])
+                        distBetweenMarkers = grid_distance(marker[0][0], marker[0][1], marker[1][0], marker[1][1])
                         angleBetweenMarkers = diff_heading_deg(marker[0][2], marker[1][2])
                         a = ((distBetweenMarkers)**2) / (2*(MARKER_TRANS_SIGMA**2))
                         b = ((angleBetweenMarkers)**2) / (2*(MARKER_ROT_SIGMA**2))
@@ -95,10 +98,10 @@ def measurement_update(particles, measured_marker_list, grid):
     # print(particles_weights, "\nlen", len(particles_weights))
     alpha = sum(particles_weights)
     # print("sumofw", sum(particles_weights))
-    # if alpha == 0:
-    #     particles_weights = [1/(len(particles_weights)) for pw in particles_weights]
-    # else:
-    particles_weights = [pw / alpha for pw in particles_weights]
+    if alpha == 0:
+        particles_weights = [1/(len(particles_weights)) for pw in particles_weights]
+    else:
+        particles_weights = [pw / alpha for pw in particles_weights]
 
     # particles_weights = [pw / alpha for pw in particles_weights]
 
@@ -108,7 +111,7 @@ def measurement_update(particles, measured_marker_list, grid):
     # print("particles_off_grid", particles_off_grid)
     # # resample
     # print(particles_weights.count(0))
-    num_random_samples = 10
+    num_random_samples = 100
     # print(num_random_samples)
     random_particles = list()
     for x in range(num_random_samples):
