@@ -155,8 +155,24 @@ async def run(robot: cozmo.robot.Robot):
     STATE = RobotStates.LOCALIZING
     while(condition):
         if STATE == RobotStates.LOCALIZING:
-            pass
-            STATE = RobotStates.TRAVELING
+            curr_pose = robot.pose
+            img = image_processing(robot)
+            markers = cvt_2Dmarker_measurements(img)
+            # print(markers)
+            odom = compute_odometry(curr_pose)
+            estimated = pf.update(odom, markers)
+            gui.show_particles(pf.particles)
+            gui.show_mean(estimated[0], estimated[1], estimated[2], estimated[3])
+            gui.updated.set()
+            last_pose = curr_pose
+            if estimated[3]:
+                trueVal += 1
+            else:
+                pass
+
+            if trueVal > 10:
+                
+                STATE = RobotStates.TRAVELING
 
         if STATE == RobotStates.TRAVELING:
             pass
