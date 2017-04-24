@@ -34,7 +34,7 @@ def motion_update(particles, odom):
         motion_particles.append(Particle(x+wx, y+wy, nh))
     return motion_particles
 
-# ------------------------------------------------------------------------
+------------------------------------------------------------------------
 def measurement_update(particles, measured_marker_list, grid):
     """ Particle filter measurement update
 
@@ -121,5 +121,3 @@ def measurement_update(particles, measured_marker_list, grid):
     measured_particles = np.random.choice(particles, size=len(particles) - num_random_samples, p=particles_weights)
 
     return np.concatenate([measured_particles, random_particles])
-
-
