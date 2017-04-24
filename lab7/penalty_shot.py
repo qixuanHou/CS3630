@@ -6,6 +6,7 @@ By press space, save the image from 001.bmp to ...
 
 import cv2
 import cozmo
+from cozmo.util import Pose, distance_inches, degrees
 import numpy as np
 from find_ball import find_ball
 from numpy.linalg import inv
@@ -32,7 +33,7 @@ last_pose = cozmo.util.Pose(0,0,0,angle_z=cozmo.util.Angle(degrees=0))
 flag_odom_init = False
 
 # goal location for the robot to drive to, (x, y, theta)
-goal = (6,10,0)
+goal = (26, 9, 0)
 
 # map
 Map_filename = "map_arena.json"
@@ -132,7 +133,15 @@ class RobotStates(Enum):
     SHOOT = 3
     RESET = 0
 
-def our_go_to_pose(x,y,h):
+def our_go_to_pose(robot, curr_pose, dx, dy, dh):
+    # goto = curr_pose.define_pose_relative_this(Pose(distance_inches(dx), distance_inches(dy), distance_inches(0), angle_z=degrees(dh)))
+    # robot.go_to_pose(goto)
+    goto_x = curr_pose.position.x + distance_inches(dx)
+    goto_y = curr_pose.position.y + distance_inches(dy)
+    goto_h = curr_pose.rotation.angle_z + degrees(dh)
+    robot.go_to_pose(Pose(goto_x, goto_y, distance_inches(0), angle_z=goto_h))
+
+
 
 
 async def run(robot: cozmo.robot.Robot):
@@ -142,40 +151,72 @@ async def run(robot: cozmo.robot.Robot):
 
     # start streaming
     robot.camera.image_stream_enabled = True
-
     #start particle filter
     pf = ParticleFilter(grid)
 
     ###################
-    ogpose = robot.pose
+    reqConfidentFrames = 10
+    reqUnconfidentFrames = 10
     ############YOUR CODE HERE#################
     condition = True
     estimated = [0,0,0,False]
     ballObj = Robot(0, 0, 0)
     STATE = RobotStates.LOCALIZING
-    while(condition):
+    trueVal = 0
+    falseVal = 0
+    dist_to_ball = None
+    robotLen = 1
+
+    while (condition):
+        curr_pose = robot.pose
+        img = image_processing(robot)
+        (markers, ball) = cvt_2Dmarker_measurements(img)
+        dist_to_ball = calcDistance(ball)
+        if(dist_to_ball is not None and estimated[3]):
+            ballx = estimated[0] + math.cos(estimated[2]) * dist_to_ball
+            bally = estimated[1] + math.sin(estimated[2]) * dist_to_ball
+            ballObj.set_pos(ballx, bally)
+            #thinkg about false positives
+            #go to pose calculation
+            #How to make a pose??
+            #rotation plus position
+            #once localized we can tell what directino we are looking in and what position we are in
+            #add to cozmo's pose robot.Pose.pose.position in the direction of robot.Pose.pose.rotation
+
+        odom = compute_odometry(curr_pose)
+        estimated = pf.update(odom, markers)
+        gui.show_particles(pf.particles)
+        gui.show_robot(ballObj)
+        gui.show_mean(estimated[0], estimated[1], estimated[2], estimated[3])
+        gui.updated.set()
+
         if STATE == RobotStates.LOCALIZING:
-            curr_pose = robot.pose
-            img = image_processing(robot)
-            markers = cvt_2Dmarker_measurements(img)
-            # print(markers)
-            odom = compute_odometry(curr_pose)
-            estimated = pf.update(odom, markers)
-            gui.show_particles(pf.particles)
-            gui.show_mean(estimated[0], estimated[1], estimated[2], estimated[3])
-            gui.updated.set()
-            last_pose = curr_pose
+
+            robot.drive_wheels(-5, -5)
+
             if estimated[3]:
                 trueVal += 1
             else:
-                pass
-
-            if trueVal > 10:
-                
+                trueVal = 0
+            if trueVal > reqConfidentFrames && dist_to_ball is not None:
+                robot.stop_all_motors()
                 STATE = RobotStates.TRAVELING
 
         if STATE == RobotStates.TRAVELING:
-            pass
+            h = math.degrees(math.atan2(goal[1] - estimated[1], goal[0] - estimated[0]))
+            dx = ballObj.x - estimated[0] - (math.cos(h) * robotLen)
+            dy = ballObj.y - estimated[1] - (math.sin(h) * robotLen)
+            dh = h - estimated[2]
+            our_go_to_pose(robot, curr_pose, dx, dy, dh)
+
+            if not estimated[3]:
+                falseVal += 1
+            else:
+                falseVal = 0
+            if trueVal > reqUnconfidentFrames:
+                robot.stop_all_motors()
+                STATE = RobotStates.LOCALIZING
+
             STATE = RobotStates.SHOOT
 
         if STATE == RobotStates.SHOOT:
@@ -186,27 +227,6 @@ async def run(robot: cozmo.robot.Robot):
             pass
             STATE = RobotStates.TRAVELING
 
-        curr_pose = robot.pose
-        img = image_processing(robot)
-        (markers, ball) = cvt_2Dmarker_measurements(img)
-        dist_to_ball = calcDistance(ball)
-        if(dist_to_ball is not None and estimated[3]):
-            ballx = estimated[0] + math.cos(estimated[2]) * dist_to_ball
-            bally = estimated[1] + math.sin(estimated[2]) * dist_to_ball
-            ballObj.set_pos(ballx, bally)
-
-            #thinkg about false positives
-            #go to pose calculation
-            #How to make a pose??
-            #rotation plus position
-            #once localized we can tell what directino we are looking in and what position we are in
-            #add to cozmo's pose robot.Pose.pose.position in the direction of robot.Pose.pose.rotation
-        odom = compute_odometry(curr_pose)
-        estimated = pf.update(odom, markers)
-        gui.show_particles(pf.particles)
-        gui.show_robot(ballObj)
-        gui.show_mean(estimated[0], estimated[1], estimated[2], estimated[3])
-        gui.updated.set()
         last_pose = curr_pose
     ###################
 
