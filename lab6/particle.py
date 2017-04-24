@@ -107,15 +107,15 @@ class Robot(Particle):
 
             Arguments:
             odom -- odometry to move (dx, dy, dh) in *robot local frame*
-        
+
             No return
         """
-        
+
         dx, dy = rotate_point(odom[0], odom[1], self.h)
         self.x += dx
         self.y += dy
         self.h = self.h + odom[2]
-        
+
 
     def check_collsion(self, odom, grid):
         """ Check whether moving the robot will cause collision.
@@ -123,7 +123,7 @@ class Robot(Particle):
 
             Arguments:
             odom -- odometry to move (dx, dy, dh) in robot local frame
-        
+
             Return: True if will cause collision, False if will not be a collision
         """
         dx, dy = rotate_point(odom[0], odom[1], self.h)
@@ -131,3 +131,6 @@ class Robot(Particle):
             return False
         return True
 
+    def set_pos(self, x, y):
+        self.x = x
+        self.y = y
